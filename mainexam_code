@@ -1,0 +1,59 @@
+import streamlit as st
+from textblob import TextBlob
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+from collections import Counter
+
+# --- Functions ---
+def analyze_sentiment(text):
+    blob = TextBlob(text)
+    polarity = blob.sentiment.polarity
+    if polarity > 0.1:
+        return "Positive"
+    elif polarity < -0.1:
+        return "Negative"
+    else:
+        return "Neutral"
+
+def generate_wordcloud(text_list):
+    text = " ".join(text_list)
+    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
+    return wordcloud
+
+# --- Streamlit App ---
+st.set_page_config(page_title="Customer Feedback Analyzer", layout="wide")
+
+st.title("🧠 Customer Sentiment & Feedback Analyzer")
+
+st.markdown("Paste customer feedback comments below (one per line):")
+
+text_input = st.text_area("Enter feedback text here", height=250)
+
+if st.button("Analyze Feedback"):
+    if not text_input.strip():
+        st.warning("Please enter some customer feedback to analyze.")
+    else:
+        comments = text_input.strip().split("\n")
+        sentiments = [analyze_sentiment(comment) for comment in comments]
+
+        # Summary
+        sentiment_counts = Counter(sentiments)
+        total = len(comments)
+        st.subheader("🔍 Sentiment Summary")
+        st.write(f"Out of **{total}** comments:")
+        st.write(f"- 🟢 Positive: **{sentiment_counts['Positive']}**")
+        st.write(f"- 🟡 Neutral: **{sentiment_counts['Neutral']}**")
+        st.write(f"- 🔴 Negative: **{sentiment_counts['Negative']}**")
+
+        # Word Cloud
+        st.subheader("☁️ Most Frequent Words in Feedback")
+        wordcloud = generate_wordcloud(comments)
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.imshow(wordcloud, interpolation='bilinear')
+        ax.axis('off')
+        st.pyplot(fig)
+
+        # Per-comment Table
+        st.subheader("📋 Detailed Sentiment by Comment")
+        for comment, sentiment in zip(comments, sentiments):
+            st.markdown(f"**{sentiment}:** {comment}")

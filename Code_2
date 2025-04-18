@@ -1,0 +1,72 @@
+import streamlit as st
+from textblob import TextBlob
+import pandas as pd
+from collections import Counter
+import re
+
+st.set_page_config(page_title="Customer Feedback Analyzer", layout="centered")
+st.title("🧠 Customer Feedback Analyzer")
+st.markdown("Paste or upload customer feedback below to analyze sentiment and extract keywords.")
+
+# Upload section
+uploaded_file = st.file_uploader("📁 Upload CSV file with a 'feedback' column", type=["csv"])
+manual_input = st.text_area("✍️ Or manually enter feedback (one per line):", height=200)
+
+feedback_list = []
+
+# Handle file upload
+if uploaded_file is not None:
+    try:
+        df = pd.read_csv(uploaded_file)
+        if "feedback" in df.columns:
+            feedback_list = df["feedback"].dropna().astype(str).tolist()
+        else:
+            st.error("CSV must contain a 'feedback' column.")
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
+
+# Handle manual input
+elif manual_input.strip() != "":
+    feedback_list = [line.strip() for line in manual_input.split("\n") if line.strip()]
+
+# Analysis
+if st.button("🔍 Analyze Feedback") and feedback_list:
+    sentiments = []
+    all_words = []
+
+    for feedback in feedback_list:
+        blob = TextBlob(feedback)
+        polarity = blob.sentiment.polarity
+        if polarity > 0.1:
+            sentiment = "🟢 Positive"
+        elif polarity < -0.1:
+            sentiment = "🔴 Negative"
+        else:
+            sentiment = "🟡 Neutral"
+        sentiments.append((sentiment, feedback))
+
+        # Clean and collect words
+        words = re.findall(r'\b\w+\b', feedback.lower())
+        all_words.extend(words)
+
+    sentiment_counts = Counter([s[0] for s in sentiments])
+    top_words = Counter(all_words).most_common(10)
+
+    # Show summary
+    st.subheader("📊 Sentiment Summary")
+    st.write(f"🟢 Positive: {sentiment_counts['🟢 Positive']}")
+    st.write(f"🟡 Neutral: {sentiment_counts['🟡 Neutral']}")
+    st.write(f"🔴 Negative: {sentiment_counts['🔴 Negative']}")
+
+    # Top keywords
+    st.subheader("🔑 Top Keywords")
+    for word, freq in top_words:
+        st.write(f"• {word}: {freq}")
+
+    # Detailed list
+    st.subheader("📋 Detailed Feedback Analysis")
+    for sentiment, feedback in sentiments:
+        st.markdown(f"**{sentiment}** — {feedback}")
+
+elif st.button("🔍 Analyze Feedback") and not feedback_list:
+    st.warning("Please upload a file or enter some feedback first.")

@@ -1,0 +1,45 @@
+import streamlit as st
+from textblob import TextBlob
+from collections import Counter
+import re
+
+# --- Title & Instructions ---
+st.set_page_config(page_title="Customer Feedback Analyzer")
+st.title("🧠 Customer Feedback Analyzer")
+st.markdown("Paste customer feedback (one per line) below and click **Analyze Feedback** to see sentiment insights and keyword trends.")
+
+# --- Input Area ---
+feedback_input = st.text_area("📥 Enter Feedback (one comment per line):", height=250)
+
+# --- Analyze Button ---
+if st.button("🔍 Analyze Feedback"):
+    if not feedback_input.strip():
+        st.warning("Please enter some feedback to analyze.")
+    else:
+        feedback_lines = feedback_input.strip().split("\n")
+
+        sentiments = []
+        all_words = []
+
+        for line in feedback_lines:
+            blob = TextBlob(line)
+            polarity = blob.sentiment.polarity
+
+            if polarity > 0.1:
+                sentiments.append(("🟢 Positive", line))
+            elif polarity < -0.1:
+                sentiments.append(("🔴 Negative", line))
+            else:
+                sentiments.append(("🟡 Neutral", line))
+
+            words = re.findall(r'\b\w+\b', line.lower())
+            all_words.extend(words)
+
+        sentiment_count = Counter([s[0] for s in sentiments])
+        word_freq = Counter(all_words).most_common(10)
+
+        # --- Summary Section ---
+        st.subheader("📊 Sentiment Summary")
+        st.write(f"🟢 Positive: {sentiment_count['🟢 Positive']}")
+        st.write(f"🟡 Neutral: {sentiment_count['🟡 Neutral']}")
+        st.write(f
